@@ -1,4 +1,4 @@
-Simple (sort of) d3.js project comparing Wisconsin County Health measures across various metrics upto Y2010. Data would need upating to make this a little more useful these days....
+Simple (sort of) d3.js project comparing Wisconsin County Health measures across various metrics upto Y2010. Data would need upating to make this a little more useful these days....i really had no idea what is was doing when i smashed this together a few years ago. Enjoy!!
 
 
 
