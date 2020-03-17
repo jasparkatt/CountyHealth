@@ -1,0 +1,1021 @@
+<!--County Health Measure Comparisons, Wisconsin
+Created Spring, 2016 by Adams County GIS Dept.-->
+
+<!DOCTYPE html>
+<html>
+
+<head lang="en">
+    <meta charset="utf-8">
+    <title>Wisconsin Health Measure Comparison, by County</title>
+    <script src="lib/d3.min.js"></script>
+    <script src="lib/topojson.min.js"></script>
+    <script type="text/javascript" src="lib/jquery.min.js"></script>
+    <script src="lib/queue.min.js"></script>
+    <script src="lib/d3-tip.min.js"></script>
+    <script src="lib/mycol.js"></script>
+    <script src="lib/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+
+    <style>
+        @import url(http://fonts.googleapis.com/css?family=Lora:400,400italic,700);
+        .Cnty_Rnk {
+            fill: none;
+            stroke: #cfcfcf;
+        }
+        
+        body {
+            margin: 5px 5px;
+            /* text unselectable */
+            -webkit-user-select: none;
+            /* Chrome/Safari */
+            -moz-user-select: none;
+            /* Firefox */
+            -ms-user-select: none;
+            /* IE10+ */
+        }
+        
+        .d3-tip {
+            line-height: 1.5;
+            padding: 5px;
+            background: rgba(83, 83, 83, 0.85);
+            color: white;
+            border-radius: 4px;
+        }
+        
+        .toolTipHead {
+            font-size: 14px;
+        }
+        
+        .toolTipRank {
+            font-size: 16px;
+            font-weight: bold;
+            color: red;
+        }
+        
+        .toolTipBody {
+            font-size: 13px;
+        }
+        
+        .legendTitle {
+            font-family: "Lora";
+            font-size: 15px;
+            color: #393636;
+            margin-left: 15px;
+        }
+        
+        #legend {
+            width: 500px;
+            position: absolute;
+            left: 485px;
+            top: 475px;
+            background-color: transparent;
+        }
+        
+        li.key {
+            float: left;
+            border-top-width: 15px;
+            border-top-style: solid;
+            font-family: "Lora";
+            color: #393636;
+            font-size: 14px;
+            width: 10%;
+            padding-left: -10;
+            padding-right: 0;
+            list-style: none;
+        }
+    </style>
+</head>
+<!--create tabs for alike data sets-->
+
+<body>
+    <div class="btn-group pull-right">
+        <button type="button" class="btn btn-default btn-sm">BRFSS</button>
+        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+        <ul class="dropdown-menu" role="menu">
+            <li><a class="m" value="smokeQ1" href="#">Fraction Current Smokers, Q1</a></li>
+            <li><a class="m" value="smokeQ2" href="#">Fraction Current Smokers, Q2</a></li>
+            <li><a class="m" value="smokeQ3" href="#">Fraction Current Smokers, Q3</a></li>
+            <li><a class="m" value="smokeQ4" href="#">Fraction Current Smokers, Q4</a></li>
+            <li><a class="m" value="bigQ1" href="#">Fraction Obese, Q1</a></li>
+            <li><a class="m" value="bigQ2" href="#">Fraction Obese, Q2</a></li>
+            <li><a class="m" value="bigQ3" href="#">Fraction Obese, Q3</a></li>
+            <li><a class="m" value="bigQ4" href="#">Fraction Obese, Q4</a></li>
+            <li><a class="m" value="exerQ1" href="#">Fraction Exercised Past 30 Days, Q1</a></li>
+            <li><a class="m" value="exerQ2" href="#">Fraction Exercised Past 30 Days, Q2</a></li>
+            <li><a class="m" value="exerQ3" href="#">Fraction Exercised Past 30 Days, Q3</a></li>
+            <li><a class="m" value="exerQ4" href="#">Fraction Exercised Past 30 Days, Q4</a></li>
+        </ul>
+    </div>
+    <div class="btn-group pull-right">
+        <button type="button" class="btn btn-default btn-sm">HealthCare</button>
+        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+        <ul class="dropdown-menu" role="menu">
+            <li><a class="m" value="perunin" href="#">Percent Uninsured</a></li>
+            <li><a class="m" value="medidoll" href="#">Medicare $ Per Enrollee</a></li>
+            <li><a class="m" value="hmri" href="#">30 Day Hospital Mortality Rate Index</a></li>
+            <li><a class="m" value="mha" href="#">30 Day Mortality, Heart Attack</a></li>
+            <li><a class="m" value="mhf" href="#">30 Day Mortality, Heart Failure</a></li>
+            <li><a class="m" value="mpn" href="#">30 Day Mortality, Pneumonia</a></li>
+            <li><a class="m" value="daacm" href="#">Mean Z-scores, Dartmouth Atlas Ambulatory Care Measures</a></li>
+            <li><a class="m" value="mepcv" href="#">Percent Medicare Enrollees, at Least 1 Primary Care Visit</a></li>
+            <li><a class="m" value="daht" href="#">Percent Diabetic with Annual Hemoglobin Test</a></li>
+            <li><a class="m" value="daet" href="#">Percent Diabetic with Annual Eye Test</a></li>
+            <li><a class="m" value="dalt" href="#">Percent Diabetic with Annual Lipids Test</a></li>
+            <li><a class="m" value="mamm" href="#">Percent Females, age 67-69 with Mammogram</a></li>
+            <li><a class="m" value="acsc" href="#">Discharges for Ambulatory Care Sensitive Conditions, Medicare Enrollees</a></li>
+        </ul>
+    </div>
+    <div class="btn-group pull-right">
+        <button type="button" class="btn btn-default btn-sm">Population</button>
+        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+        <ul class="dropdown-menu" role="menu">
+            <li><a class="m" value="pop0" href="#">County Population, 2000</a></li>
+            <li><a class="m" value="pop10" href="#">County Population, 2010</a></li>
+            <li><a class="m" value="pop0d" href="#">Population Density, 2000</a></li>
+            <li><a class="m" value="pop10d" href="#">Population Density, 2010</a></li>
+            <li><a class="m" value="rseg0" href="#">Racial Segregation</a></li>
+            <li><a class="m" value="rtot" href="#">Percent, Religious</a></li>
+            <li><a class="m" value="pblk" href="#">Percent, Black</a></li>
+            <li><a class="m" value="phisp" href="#">Percent, Hispanic</a></li>
+            <li><a class="m" value="pfbn" href="#">Percent, Foreign Born</a></li>
+            <li><a class="m" value="minf" href="#">Migration Inflow Rate</a></li>
+            <li><a class="m" value="monf" href="#">Migration Outflow Rate</a></li>
+            <li><a class="m" value="fcsm" href="#">Fraction Children, Single Mother</a></li>
+        </ul>
+    </div>
+    <div class="btn-group pull-right">
+        <button type="button" class="btn btn-default btn-sm">Economics</button>
+        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+        <ul class="dropdown-menu" role="menu">
+            <li><a class="m" value="sinc" href="#">Income Segregation</a></li>
+            <li><a class="m" value="sinc25" href="#">Segregation of Poverty</a></li>
+            <li><a class="m" value="sinc75" href="#">Segregation of Affluence</a></li>
+            <li><a class="m" value="gin" href="#">GINI Index, bottom 99%</a></li>
+            <li><a class="m" value="psh" href="#">Poverty Rate</a></li>
+            <li><a class="m" value="incsh1" href="#">Top 1% Income Share</a></li>
+            <li><a class="m" value="fmicl" href="#">Fraction Middle Class, p25 - p75 </a></li>
+            <li><a class="m" value="sindx" href="#">Social Capital Index</a></li>
+            <li><a class="m" value="amer" href="#">Absolute Mobility (Expected Rank at p25)</a></li>
+            <li><a class="m" value="unemp00" href="#">Unemployment Rate, 2000</a></li>
+            <li><a class="m" value="lbf_ch0" href="#">Percent Change, Labor Force 1980-2000</a></li>
+            <li><a class="m" value="labfp" href="#">Labor Force Participation</a></li>
+            <li><a class="m" value="shwm" href="#">Share Working in Manufacturing</a></li>
+            <li><a class="m" value="ftc15" href="#">Fraction, Commute Under 15 minutes</a></li>
+            <li><a class="m" value="mnhi" href="#">Mean Household Income</a></li>
+            <li><a class="m" value="mdhv" href="#">Median House Value</a></li>
+            <li><a class="m" value="lgex" href="#">Local Government Expenditures</a></li>
+            <li><a class="m" value="ltxr" href="#">Local Tax Rate</a></li>
+        </ul>
+    </div>
+    <div class="btn-group pull-right">
+        <button type="button" class="btn btn-default btn-sm">Education</button>
+        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+        <ul class="dropdown-menu" role="menu">
+            <li><a class="m" value="seps" href="#">School Expenditures per Student</a></li>
+            <li><a class="m" value="sttr" href="#">Student-Teacher Ratio</a></li>
+            <li><a class="m" value="iats" href="#">Income Adjusted, Test Score Percentile</a></li>
+            <li><a class="m" value="hsdr" href="#">High School Dropout Rate</a></li>
+            <li><a class="m" value="ctcst" href="#">College Tuition</a></li>
+            <li><a class="m" value="nucgr" href="#">Percent College Grad</a></li>
+        </ul>
+    </div>
+    <script>
+        //give svg a home
+        var width = 960,
+            height = 640,
+            centered;
+        //create projection for svg
+        var projection = d3.geo.mercator()
+            .center([-87.41, 44.54])
+            .scale(204 * 23)
+            .translate([width / 2, height / 2]);
+        //create svg path 
+        var path = d3.geo.path()
+            .projection(projection);
+        //build svg
+        var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g");
+        /*global variables*/
+        var smokerQ1 = {};
+        var smokerQ2 = {};
+        var smokerQ3 = {};
+        var smokerQ4 = {};
+        var obeseQ1 = {};
+        var obeseQ2 = {};
+        var obeseQ3 = {};
+        var obeseQ4 = {};
+        var exQ1 = {};
+        var exQ2 = {};
+        var exQ3 = {};
+        var exQ4 = {};
+        var punin = {};
+        var meden = {};
+        var mri = {};
+        var ha = {};
+        var hf = {};
+        var mp = {};
+        var dacm = {};
+        var mpcv = {};
+        var dht = {};
+        var det = {};
+        var dlt = {};
+        var mam = {};
+        var acs = {};
+        var pp0 = {};
+        var pp10 = {};
+        var pp0d = {};
+        var pp10d = {};
+        var sin = {};
+        var sin25 = {};
+        var sin75 = {};
+        var seg0 = {};
+        var ginn = {};
+        var povr = {};
+        var insh1 = {};
+        var fmcl = {};
+        var sdx = {};
+        var rto = {};
+        var blk = {};
+        var hisp = {};
+        var unemp = {};
+        var lbf_ch = {};
+        var lfp = {};
+        var shm = {};
+        var pfb = {};
+        var mifr = {};
+        var mofr = {};
+        var ft15 = {};
+        var mhi = {};
+        var mhv = {};
+        var sps = {};
+        var strr = {};
+        var iat = {};
+        var hsd = {};
+        var ctc = {};
+        var nuc = {};
+        var ame = {};
+        var fcm = {};
+        var lge = {};
+        var ltx = {};
+
+        //wrapper function for switching map and legend contents   
+        function updateChoro(choro) {
+            //grab data from csv file
+            d3.csv("data/Data.csv", function (error, data) {
+                //set color scale for choropleth
+                var cscale;
+                var domain;
+
+                if (choro == "smokeQ1") {
+                    choro = smokerQ1;
+                    cscale = colorbrewer.PuBu[6]
+                    domain = 'Fraction Current Smokers, Q1'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "smokeQ2") {
+                    choro = smokerQ2;
+                    cscale = colorbrewer.PuBu[6]
+                    domain = 'Fraction Current Smokers, Q2'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "smokeQ3") {
+                    choro = smokerQ3;
+                    cscale = colorbrewer.PuBu[6]
+                    domain = 'Fraction Current Smokers, Q3'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "smokeQ4") {
+                    choro = smokerQ4;
+                    cscale = colorbrewer.PuBu[6]
+                    domain = 'Fraction Current Smokers, Q4'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "bigQ1") {
+                    choro = obeseQ1;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Fraction Obese, Q1'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "bigQ2") {
+                    choro = obeseQ2;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Fraction Obese, Q2'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "bigQ3") {
+                    choro = obeseQ3;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Fraction Obese, Q3'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "bigQ4") {
+                    choro = obeseQ4;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Fraction Obese, Q4'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "exerQ1") {
+                    choro = exQ1;
+                    cscale = colorbrewer.Greens[6]
+                    domain = 'Fraction Exercised Past 30 Days, Q1'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "exerQ2") {
+                    choro = exQ2;
+                    cscale = colorbrewer.Greens[6]
+                    domain = 'Fraction Exercised Past 30 Days, Q2'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "exerQ3") {
+                    choro = exQ3;
+                    cscale = colorbrewer.Greens[6]
+                    domain = 'Fraction Exercised Past 30 Days, Q3'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "exerQ4") {
+                    choro = exQ4;
+                    cscale = colorbrewer.Greens[6]
+                    domain = 'Fraction Exercised Past 30 Days, Q4'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "perunin") {
+                    choro = punin;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = 'Percent Uninsured, FY2010'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "medidoll") {
+                    choro = meden;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = 'Medicare $ per Enrollee'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "hmri") {
+                    choro = mri;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = '30 Day Hospital Mortality Rate Index'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "mha") {
+                    choro = ha;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = '30 Day Mortality for Heart Attacks'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "mhf") {
+                    choro = hf;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = '30 Day Mortality for Heart Failure'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "mpn") {
+                    choro = mp;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = '30 Day Mortality for Pneumonia'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "daacm") {
+                    choro = dacm;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = 'Z-score Mean for Dartmouth Atlas Ambulatory Care Measures'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "mepcv") {
+                    choro = mpcv;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = 'Percent, Medicare Enrollees with at least One Primary Care Visit'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "daht") {
+                    choro = dht;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = 'Percent, Diabetic with Annual Hemoglobin Test'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "daet") {
+                    choro = det;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = 'Percent, Diabetic with Annual Eye Test'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "dalt") {
+                    choro = dlt;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = 'Percent, Diabetic with Annual Lipids Test'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "mamm") {
+                    choro = mam;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = 'Percent, Females 67-69 with Mammogram'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "acsc") {
+                    choro = acs;
+                    cscale = colorbrewer.PuRd[6]
+                    domain = 'Discharges (per 1000) Ambulatory Care Sensitive Conditions, Medicare Enrollees'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "pop0") {
+                    choro = pp0;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'County Population, Census 2000'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "pop10") {
+                    choro = pp10;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'County Population, Census 2010'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "pop0d") {
+                    choro = pp0d;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'County Population Density, 2000'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "pop10d") {
+                    choro = pp10d;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'County Population Density, 2010'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "sinc") {
+                    choro = sin;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Income Segregation'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "sinc25") {
+                    choro = sin25;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Segregation of Poverty (p <25)'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "sinc75") {
+                    choro = sin75;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Segregation of Affluence (p >75)'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "rseg0") {
+                    choro = seg0;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Racial Segregation, 2000'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "gin") {
+                    choro = ginn;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'GINI Index, within bottom 99%'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "psh") {
+                    choro = povr;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Poverty Rate'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "incsh1") {
+                    choro = insh1;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Top 1% Income Share'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "fmicl") {
+                    choro = fmcl;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Fraction Middle Class (p25-p75)'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "sindx") {
+                    choro = sdx;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Social Captial Index'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "pblk") {
+                    choro = blk;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Percent Black'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "phisp") {
+                    choro = hisp;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Percent Hispanic'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "unemp00") {
+                    choro = unemp;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Unemployment Rate, 2000'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "lbf_ch0") {
+                    choro = lbf_ch;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Percent Change, Labor Force 1980-2000'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "labfp") {
+                    choro = lfp;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Labor Force Participation'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "shwm") {
+                    choro = shm;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Share Working, Manufacturing'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "pfbn") {
+                    choro = pfb;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Percent Foreign Born'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "minf") {
+                    choro = mifr;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Migration, Inflow Rate'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "monf") {
+                    choro = mofr;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Migration, Outflow Rate'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "ftc15") {
+                    choro = ft15;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Commute Under 15 Minutes'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "mnhi") {
+                    choro = mhi;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Mean Household Income'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "mdhv") {
+                    choro = mhv;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Median House Value'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "seps") {
+                    choro = sps;
+                    cscale = colorbrewer.BuPu[6]
+                    domain = 'School Expenditure per Student'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "sttr") {
+                    choro = strr;
+                    cscale = colorbrewer.BuPu[6]
+                    domain = 'Student-Teacher Ratio'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "iats") {
+                    choro = iat;
+                    cscale = colorbrewer.BuPu[6]
+                    domain = 'Test Score Percentile, Income Adjusted'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "hsdr") {
+                    choro = hsd;
+                    cscale = colorbrewer.BuPu[6]
+                    domain = 'High School Dropout Rate, Income Adjusted'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "ctcst") {
+                    choro = ctc;
+                    cscale = colorbrewer.BuPu[6]
+                    domain = 'College Tuition'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "nucgr") {
+                    choro = nuc;
+                    cscale = colorbrewer.BuPu[6]
+                    domain = 'Percent with Bachelors?'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "amer") {
+                    choro = ame;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Absolute Mobility, Expected Rank at p25'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "fcsm") {
+                    choro = fcm;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Fraction Children w/ Single Mother'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "lgex") {
+                    choro = lge;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Local Government Expenditures'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "ltxr") {
+                    choro = ltx;
+                    cscale = colorbrewer.YlGnBu[6]
+                    domain = 'Local Tax Rate'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+                if (choro == "rtot") {
+                    choro = rto;
+                    cscale = colorbrewer.Oranges[6]
+                    domain = 'Percent Religious'
+                    document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
+                }
+
+                //set scale/color range, domain wraps all possible values in csv by category...1-6, with 6 being "nodata" in this case
+                var color = d3.scale.quantize()
+                    .domain([1, 6])
+                    .range(cscale);
+                //for each function to iterate through data from csv wrap this stuff in if, if else statement to switch between datasets SWITHC OUT TOPOJSON TO VER 7
+                data.forEach(function (d) {
+                    smokerQ1[d.COUNTY_NAM] = +d.s_q1_q;
+                    smokerQ2[d.COUNTY_NAM] = +d.s_q2_q;
+                    smokerQ3[d.COUNTY_NAM] = +d.s_q3_q;
+                    smokerQ4[d.COUNTY_NAM] = +d.s_q4_q;
+                    obeseQ1[d.COUNTY_NAM] = +d.o_q1_q;
+                    obeseQ2[d.COUNTY_NAM] = +d.o_q2_q;
+                    obeseQ3[d.COUNTY_NAM] = +d.o_q3_q;
+                    obeseQ4[d.COUNTY_NAM] = +d.o_q4_q;
+                    exQ1[d.COUNTY_NAM] = +d.e_q1_q;
+                    exQ2[d.COUNTY_NAM] = +d.e_q2_q;
+                    exQ3[d.COUNTY_NAM] = +d.e_q3_q;
+                    exQ4[d.COUNTY_NAM] = +d.e_q4_q;
+                    punin[d.COUNTY_NAM] = +d.punin_10;
+                    meden[d.COUNTY_NAM] = +d.reimb_mdc;
+                    mri[d.COUNTY_NAM] = +d.mort_30d_h;
+                    ha[d.COUNTY_NAM] = +d.adjmort_ha;
+                    hf[d.COUNTY_NAM] = +d.adjmort_hf;
+                    mp[d.COUNTY_NAM] = +d.adjmort_pn;
+                    dacm[d.COUNTY_NAM] = +d.med_pre_z;
+                    mpcv[d.COUNTY_NAM] = +d.p_cr_v_10;
+                    dht[d.COUNTY_NAM] = +d.db_ht_10;
+                    det[d.COUNTY_NAM] = +d.db_eye_10;
+                    dlt[d.COUNTY_NAM] = +d.db_lip_10;
+                    mam[d.COUNTY_NAM] = +d.mammo_10;
+                    acs[d.COUNTY_NAM] = +d.a_d_pK_10;
+                    pp0[d.COUNTY_NAM] = +d.POP2000;
+                    pp10[d.COUNTY_NAM] = +d.POP2010;
+                    pp0d[d.COUNTY_NAM] = +d.pop_den00;
+                    pp10d[d.COUNTY_NAM] = +d.pop_den10;
+                    sin[d.COUNTY_NAM] = +d.seg_inc;
+                    sin25[d.COUNTY_NAM] = +d.seg_inc_25;
+                    sin75[d.COUNTY_NAM] = +d.seg_inc_75;
+                    seg0[d.COUNTY_NAM] = +d.race_seg00;
+                    ginn[d.COUNTY_NAM] = +d.gini99;
+                    povr[d.COUNTY_NAM] = +d.poor_sh;
+                    insh1[d.COUNTY_NAM] = +d.inc_sh_1p;
+                    fmcl[d.COUNTY_NAM] = +d.frac_micl;
+                    sdx[d.COUNTY_NAM] = +d.scap_indx;
+                    rto[d.COUNTY_NAM] = +d.rel_tot;
+                    blk[d.COUNTY_NAM] = +d.cs_frac_bl;
+                    hisp[d.COUNTY_NAM] = +d.cs_frac_hi;
+                    unemp[d.COUNTY_NAM] = +d.unemp_rt;
+                    lbf_ch[d.COUNTY_NAM] = +d.lf_d_20_80;
+                    lfp[d.COUNTY_NAM] = +d.cs_labfor;
+                    shm[d.COUNTY_NAM] = +d.cs_e_i_man;
+                    pfb[d.COUNTY_NAM] = +d.cs_brn_for;
+                    mifr[d.COUNTY_NAM] = +d.mig_inflo;
+                    mofr[d.COUNTY_NAM] = +d.mig_outflo;
+                    ft15[d.COUNTY_NAM] = +d.frac_tt_15;
+                    mhi[d.COUNTY_NAM] = +d.hhinc00;
+                    mhv[d.COUNTY_NAM] = +d.med_ho_val;
+                    sps[d.COUNTY_NAM] = +d.ccd_ex_tot;
+                    strr[d.COUNTY_NAM] = +d.ccd_p_t_ra;
+                    iat[d.COUNTY_NAM] = +d.score_r;
+                    hsd[d.COUNTY_NAM] = +d.dropout_r;
+                    ctc[d.COUNTY_NAM] = +d.tuition;
+                    nuc[d.COUNTY_NAM] = +d.cs_educ_ba;
+                    ame[d.COUNTY_NAM] = +d.e_rank_b;
+                    fcm[d.COUNTY_NAM] = +d.cs_fam_wks;
+                    lge[d.COUNTY_NAM] = +d.subcty_exp;
+                    ltx[d.COUNTY_NAM] = +d.taxrate;
+                });
+                //read topo file data
+                d3.json("data/Cnty_Rnk_topo7.json", function (error, Cnty_Rnk_topo7) {
+                    //build tooltip popups...'e','s','n' refer to cardinal direction the popup opens in relation to selected element(county) you can swap out the <= for just a list after = comma separated ID numbers (notquite)
+                    var tip = d3.tip()
+                        .attr('class', 'd3-tip')
+                        .offset([0, 10])
+                        .direction(function (d) {
+                            if (d.properties.direction == '1') {
+                                return 'ne'
+                            }
+                            if (d.properties.direction == '4') {
+                                return 'nw'
+                            } else {
+                                return 'se'
+                            };
+                        })
+                        .html(function (d) {
+
+                            if (choro == smokerQ1) {
+                                var attR1 = d.properties.s_q1_q;
+                            }
+                            if (choro == smokerQ2) {
+                                var attR1 = d.properties.s_q2_q;
+                            }
+                            if (choro == smokerQ3) {
+                                var attR1 = d.properties.s_q3_q;
+                            }
+                            if (choro == smokerQ4) {
+                                var attR1 = d.properties.s_q4_q;
+                            }
+                            if (choro == obeseQ1) {
+                                var attR1 = d.properties.o_q1_q;
+                            }
+                            if (choro == obeseQ2) {
+                                var attR1 = d.properties.o_q2_q;
+                            }
+                            if (choro == obeseQ3) {
+                                var attR1 = d.properties.o_q3_q;
+                            }
+                            if (choro == obeseQ4) {
+                                var attR1 = d.properties.o_q4_q;
+                            }
+                            if (choro == exQ1) {
+                                var attR1 = d.properties.e_q1_q;
+                            }
+                            if (choro == exQ2) {
+                                var attR1 = d.properties.e_q2_q;
+                            }
+                            if (choro == exQ3) {
+                                var attR1 = d.properties.e_q3_q;
+                            }
+                            if (choro == exQ4) {
+                                var attR1 = d.properties.e_q4_q;
+                            }
+                            if (choro == punin) {
+                                var attR1 = d.properties.punin_10;
+                            }
+                            if (choro == meden) {
+                                var attR1 = d.properties.reimb_mdc;
+                            }
+                            if (choro == mri) {
+                                var attR1 = d.properties.mort_30d_h;
+                            }
+                            if (choro == ha) {
+                                var attR1 = d.properties.adjmort_ha;
+                            }
+                            if (choro == hf) {
+                                var attR1 = d.properties.adjmort_hf;
+                            }
+                            if (choro == mp) {
+                                var attR1 = d.properties.adjmort_pn;
+                            }
+                            if (choro == dacm) {
+                                var attR1 = d.properties.med_pre_z;
+                            }
+                            if (choro == mpcv) {
+                                var attR1 = d.properties.p_cr_v_10;
+                            }
+                            if (choro == dht) {
+                                var attR1 = d.properties.db_ht_10;
+                            }
+                            if (choro == det) {
+                                var attR1 = d.properties.db_eye_10;
+                            }
+                            if (choro == dlt) {
+                                var attR1 = d.properties.db_lip_10;
+                            }
+                            if (choro == mam) {
+                                var attR1 = d.properties.mammo_10;
+                            }
+                            if (choro == acs) {
+                                var attR1 = d.properties.a_d_pK_10;
+                            }
+                            if (choro == pp0) {
+                                var attR1 = d.properties.POP2000;
+                            }
+                            if (choro == pp10) {
+                                var attR1 = d.properties.POP2010;
+                            }
+                            if (choro == pp0d) {
+                                var attR1 = d.properties.pop_den00;
+                            }
+                            if (choro == pp10d) {
+                                var attR1 = d.properties.pop_den10;
+                            }
+                            if (choro == sin) {
+                                var attR1 = d.properties.seg_inc;
+                            }
+                            if (choro == sin25) {
+                                var attR1 = d.properties.seg_inc_25;
+                            }
+                            if (choro == sin75) {
+                                var attR1 = d.properties.seg_inc_75;
+                            }
+                            if (choro == seg0) {
+                                var attR1 = d.properties.race_seg00;
+                            }
+                            if (choro == ginn) {
+                                var attR1 = d.properties.gini99;
+                            }
+                            if (choro == povr) {
+                                var attR1 = d.properties.poor_sh;
+                            }
+                            if (choro == insh1) {
+                                var attR1 = d.properties.inc_sh_1p;
+                            }
+                            if (choro == fmcl) {
+                                var attR1 = d.properties.frac_micl;
+                            }
+                            if (choro == sdx) {
+                                var attR1 = d.properties.scap_indx;
+                            }
+                            if (choro == rto) {
+                                var attR1 = d.properties.rel_tot;
+                            }
+                            if (choro == blk) {
+                                var attR1 = d.properties.cs_frac_bl;
+                            }
+                            if (choro == hisp) {
+                                var attR1 = d.properties.cs_frac_hi;
+                            }
+                            if (choro == unemp) {
+                                var attR1 = d.properties.unemp_rt;
+                            }
+                            if (choro == lbf_ch) {
+                                var attR1 = d.properties.lf_d_20_80;
+                            }
+                            if (choro == lfp) {
+                                var attR1 = d.properties.cs_labfor;
+                            }
+                            if (choro == shm) {
+                                var attR1 = d.properties.cs_e_i_man;
+                            }
+                            if (choro == pfb) {
+                                var attR1 = d.properties.cs_brn_for;
+                            }
+                            if (choro == mifr) {
+                                var attR1 = d.properties.mig_inflo;
+                            }
+                            if (choro == mofr) {
+                                var attR1 = d.properties.mig_outflo;
+                            }
+                            if (choro == ft15) {
+                                var attR1 = d.properties.frac_tt_15;
+                            }
+                            if (choro == mhi) {
+                                var attR1 = d.properties.hhinc00;
+                            }
+                            if (choro == mhv) {
+                                var attR1 = d.properties.med_ho_val;
+                            }
+                            if (choro == sps) {
+                                var attR1 = d.properties.ccd_ex_tot;
+                            }
+                            if (choro == strr) {
+                                var attR1 = d.properties.ccd_p_t_ra;
+                            }
+                            if (choro == iat) {
+                                var attR1 = d.properties.score_r;
+                            }
+                            if (choro == hsd) {
+                                var attR1 = d.properties.dropout_r;
+                            }
+                            if (choro == ctc) {
+                                var attR1 = d.properties.tuition;
+                            }
+                            if (choro == nuc) {
+                                var attR1 = d.properties.cs_educ_ba;
+                            }
+                            if (choro == ame) {
+                                var attR1 = d.properties.e_rank_b;
+                            }
+                            if (choro == fcm) {
+                                var attR1 = d.properties.cs_fam_wks;
+                            }
+                            if (choro == lge) {
+                                var attR1 = d.properties.subcty_exp;
+                            }
+                            if (choro == ltx) {
+                                var attR1 = d.properties.taxrate;
+                            }
+
+                            return "<span class = 'toolTipHead'><b>County: " + d.properties.COUNTY_NAM + "</b><br/>" +
+                                "WI/COUNTY FIPS ID: " + d.properties.ID + "<br/>" +
+                                "<span class = 'toolTipRank'>" + domain + "</span><br/>" +
+                                /* "County Data<br/>" +*/
+                                "Value: " + attR1 + "<br/>"
+                        })
+
+                    svg.call(tip);
+
+                    d3.select("g")
+                        .selectAll("path")
+                        .remove();
+
+                    // build the choropleth map
+                    var appending = svg.selectAll("g")
+                        .attr("class", "Cnty_Rnk")
+                        .data(topojson.feature(Cnty_Rnk_topo7, Cnty_Rnk_topo7.objects.Cnty_Rnk).features);
+                    // add new elements
+                    appending.enter().append("path");
+
+                    // update existing elements
+                    appending.style("fill",
+                            function (d) {
+                                return color(choro[d.properties.COUNTY_NAM]);
+                            })
+                        .style("stroke", "black")
+                        .style("stroke-width", 0.3)
+                        .attr("d", path)
+                        .on("click", clicked)
+
+                    // rollover functionality to display tool tips
+                    .on("mouseover", function (d) {
+                            tip.show(d)
+                            d3.select(this)
+                                .transition().duration(200)
+                                .style("fill", "red");
+                        })
+                        .on("mouseout", function () {
+                            tip.hide()
+                            d3.select(this)
+                                .transition().duration(200)
+                                .style("fill",
+                                    function (d) {
+                                        return color(choro[d.properties.COUNTY_NAM]);
+                                    });
+                        })
+
+                    d3.select('#legend')
+                        .selectAll('ul')
+                        .remove();
+
+                    // build the map legend
+                    var legend = d3.select('#legend')
+                        .append('ul')
+                        .attr('class', 'list-inline');
+
+                    var keys = legend.selectAll('li.key')
+                        .data(color.range());
+
+                    var legend_items = ["Q1(0-20%)", "Q2(20-40%)", "Q3(40-60%)", "Q4(60-80%)", "Q5(80-100%)", "NODATA"];
+
+                    keys.enter().append('li')
+                        .attr('class', 'key')
+                        .style('border-top-color', String)
+                        .text(function (d, i) {
+                            return legend_items[i];
+                        });
+                })
+            })
+        }
+
+        // zoom functionality written by the awesome Mike Bostock
+        function clicked(d) {
+            var x, y, k;
+
+            if (d && centered !== d) {
+                var centroid = path.centroid(d);
+                x = centroid[0];
+                y = centroid[1];
+                k = 4;
+                centered = d;
+            } else {
+                x = width / 2;
+                y = height / 2;
+                k = 1;
+                centered = null;
+            }
+
+            svg.selectAll("path")
+                .classed("active", centered && function (d) {
+                    return d === centered;
+                });
+
+            svg.transition()
+                .duration(750)
+                .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + k + ")translate(" + -x + "," + -y + ")")
+                .style("stroke-width", 1.5 / k + "px");
+        }
+
+        // generate initial map using current smokers Q1 data
+        updateChoro("smokeQ1");
+
+        // handle on click event to switch between maps
+        d3.selectAll(".m")
+            .on("click", function () {
+                var choro = this.getAttribute("value");
+                updateChoro(choro);
+            });
+    </script>
+    <div id="legend"></div>
+</body>
+
+</html>
