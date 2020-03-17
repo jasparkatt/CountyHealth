@@ -2,4 +2,4 @@ Simple (sort of) d3.js project comparing Wisconsin County Health measures across
 
 
 
-view project here:[Github Pages](https://jasparkatt.github.io/CountyHealth/)
+view project here: [County Compare](https://jasparkatt.github.io/CountyHealth/)
