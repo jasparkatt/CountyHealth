@@ -269,7 +269,7 @@ Created Spring, 2016 by Adams County GIS Dept.-->
                 var cscale;
                 var domain;
 
-                if (choro == "smokeQ1") {
+               /*  if (choro == "smokeQ1") {
                     choro = smokerQ1;
                     cscale = colorbrewer.PuBu[6]
                     domain = 'Fraction Current Smokers, Q1'
@@ -634,7 +634,7 @@ Created Spring, 2016 by Adams County GIS Dept.-->
                     cscale = colorbrewer.Oranges[6]
                     domain = 'Percent Religious'
                     document.getElementById("legend").innerHTML = "<span class = legendTitle>" + domain + "</span>";
-                }
+                } */
 
                 //set scale/color range, domain wraps all possible values in csv by category...1-6, with 6 being "nodata" in this case
                 var color = d3.scale.quantize()
